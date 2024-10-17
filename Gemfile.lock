@@ -36,6 +36,7 @@ PLATFORMS
 
 DEPENDENCIES
   colorize (~> 1.1)
+  json (~> 2.7)
   rubocop (~> 1.67)
   rubocop-performance (~> 1.22)
 

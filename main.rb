@@ -1,10 +1,15 @@
 require 'rubocop'
 require 'rubocop-performance'
 require 'colorize'
+require 'json'
 
 class Game
   def start
-    setup_game
+    if play_saved_game?
+
+    else
+      setup_game
+    end
     game_loop
   end
 
@@ -124,16 +129,22 @@ Wrong guesses : #{@guesses[:wrong].map { |guess| guess.colorize(color: :red) }.j
     puts ''
     puts "You can save your game at any time by typing #{'save'.colorize(mode: :bold)} instead of a guess"
 
-    begin
-      if (user_input = gets.chomp.downcase) == 'y'
+    user_input = ''
 
-      elsif user_input == 'n'
-
-      else
-        puts ''
+    loop do
+      begin
+        user_input = gets.chomp.downcase
+      rescue StandardError
+        user_input = ''
       end
-    rescue StandardError
+
+      break if %w[y n].include?(user_input)
+
+      puts 'Input must be Y or N'
     end
+
+    puts 'No existing saved game file' if user_input == 'y' && !File.exist?('saved_game.json')
+    user_input == 'y' && File.exist?('saved_game.json')
   end
 end
 
