@@ -3,8 +3,8 @@ require 'rubocop-performance'
 require 'colorize'
 
 class Game
-  def self.start_game
-    @possible_words = set_possible_words
+  def self.start
+    @possible_words = load_possible_words
     @secret_word = set_secret_word(@possible_words)
 
     nil unless @secret_word
@@ -12,7 +12,7 @@ class Game
 
   private
 
-  def set_possible_words
+  def load_possible_words
     dictionnary_filepath = 'google-10000-english-no-swears.txt'
     possible_words = []
 
@@ -31,5 +31,23 @@ class Game
   rescue StandardError
     puts 'Error selecting the secret word'
     nil
+  end
+
+  def get_guess
+    puts 'What letter are you guessing ?'
+
+    loop do
+      begin
+        gets.chomp.downcase
+      rescue StandardError
+        guess = ''
+      end
+
+      break if guess.length == 1
+
+      puts 'You must guess only one letter'
+    end
+
+    guess
   end
 end
