@@ -6,10 +6,11 @@ require 'json'
 class Game
   def start
     if play_saved_game?
-
+      load_saved_game
     else
       setup_game
     end
+
     game_loop
   end
 
@@ -59,7 +60,10 @@ class Game
         guess = ''
       end
 
-      if guess.length != 1
+      if guess == 'save'
+        save_game
+        break
+      elsif guess.length != 1
         puts 'Guess must be only one letter'
       elsif @guesses[:right].include?(guess) || @guesses[:wrong].include?(guess)
         puts 'You already guessed this letter'
@@ -72,11 +76,13 @@ class Game
   end
 
   def game_finished?
-    puts ''
-
     if @guess_output == @secret_word
+      print_information
+      puts ''
       puts "You #{'won'.colorize(mode: :bold)} ! The secret word was #{@secret_word}"
-    else
+    elsif @guess_output != @secret_word && @guesses[:wrong].length >= 10
+      print_information
+      puts ''
       puts "You #{'lost'.colorize(mode: :bold)} ;-; The secret word was #{@secret_word}"
     end
 
@@ -96,23 +102,25 @@ class Game
   end
 
   def print_information
-    system 'clear'
-
     puts "Guess #{@guess_iteration}".colorize(mode: :underline)
-    puts "Errors #{@guesses[:wrong].length}/10"
+
     puts ''
     puts "Word to guess : #{@guess_output.colorize(mode: :bold)}"
     puts ''
     puts "Right guesses : #{@guesses[:right].map { |guess| guess.colorize(color: :green) }.join(', ')}\t
 Wrong guesses : #{@guesses[:wrong].map { |guess| guess.colorize(color: :red) }.join(', ')}"
     puts ''
+    puts "Errors #{"#{@guesses[:wrong].length}/10".colorize(mode: :bold)}"
+    puts ''
   end
 
   def game_loop
-    while @guesses[:wrong].length <= 10
+    while @guesses[:wrong].length < 10
       print_information
 
       @guess = get_guess
+
+      break if @saved_game
 
       set_guess_category
 
@@ -120,15 +128,18 @@ Wrong guesses : #{@guesses[:wrong].map { |guess| guess.colorize(color: :red) }.j
 
       @guess_iteration += 1
 
+      system 'clear'
+
       break if game_finished?
     end
   end
 
   def play_saved_game?
-    puts 'Do you want to play your last saved game ? [Y/N]'
-    puts ''
-    puts "You can save your game at any time by typing #{'save'.colorize(mode: :bold)} instead of a guess"
+    system 'clear'
 
+    puts "You can save your game at any time by typing #{'save'.colorize(mode: :bold)} instead of a guess"
+    puts ''
+    puts 'Do you want to play your last saved game ? [Y/N]'
     user_input = ''
 
     loop do
@@ -143,8 +154,42 @@ Wrong guesses : #{@guesses[:wrong].map { |guess| guess.colorize(color: :red) }.j
       puts 'Input must be Y or N'
     end
 
-    puts 'No existing saved game file' if user_input == 'y' && !File.exist?('saved_game.json')
+    if user_input == 'y' && !File.exist?('saved_game.json')
+      puts 'No existing saved game file'
+
+      delay = Time.now + 5
+      while Time.now < delay
+      end
+    end
+
+    system 'clear'
+
     user_input == 'y' && File.exist?('saved_game.json')
+  end
+
+  def load_saved_game
+    saved_game_file = File.read('saved_game.json')
+    data = JSON.parse(saved_game_file)
+
+    @secret_word = data['secret_word']
+    @guesses = {}
+    @guesses[:right] = data['guesses']['right']
+    @guesses[:wrong] = data['guesses']['wrong']
+    @guess_iteration = data['guess_iteration']
+    @guess_output = data['guess_output']
+  end
+
+  def save_game
+    data = JSON.dump({
+                       secret_word: @secret_word,
+                       guesses: @guesses,
+                       guess_iteration: @guess_iteration,
+                       guess_output: @guess_output
+                     })
+
+    File.write('saved_game.json', data)
+    puts 'Game saved'
+    @saved_game = true
   end
 end
 
