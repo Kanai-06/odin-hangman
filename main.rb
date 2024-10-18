@@ -2,6 +2,25 @@ require 'rubocop'
 require 'rubocop-performance'
 require 'colorize'
 require 'json'
+require 'openssl'
+
+class String
+  def encrypt(key)
+    cipher = OpenSSL::Cipher.new('DES-EDE3-CBC').encrypt
+    cipher.key = Digest::SHA1.hexdigest(key)[0..23]
+    s = cipher.update(self) + cipher.final
+
+    s.unpack1('H*').upcase
+  end
+
+  def decrypt(key)
+    cipher = OpenSSL::Cipher.new('DES-EDE3-CBC').decrypt
+    cipher.key = Digest::SHA1.hexdigest(key)[0..23]
+    s = [self].pack('H*').unpack('C*').pack('c*')
+
+    cipher.update(s) + cipher.final
+  end
+end
 
 class Game
   def start
@@ -79,11 +98,11 @@ class Game
     if @guess_output == @secret_word
       print_information
       puts ''
-      puts "You #{'won'.colorize(mode: :bold)} ! The secret word was #{@secret_word}"
+      puts "You #{'won'.colorize(mode: :bold)} ! The secret word was #{@secret_word.colorize(mode: :bold)}"
     elsif @guess_output != @secret_word && @guesses[:wrong].length >= 10
       print_information
       puts ''
-      puts "You #{'lost'.colorize(mode: :bold)} ;-; The secret word was #{@secret_word}"
+      puts "You #{'lost'.colorize(mode: :bold)} ;-; The secret word was #{@secret_word.colorize(mode: :bold)}"
     end
 
     @guess_output == @secret_word
@@ -171,7 +190,7 @@ Wrong guesses : #{@guesses[:wrong].map { |guess| guess.colorize(color: :red) }.j
     saved_game_file = File.read('saved_game.json')
     data = JSON.parse(saved_game_file)
 
-    @secret_word = data['secret_word']
+    @secret_word = data['secret_word'].decrypt('8morts6blesses')
     @guesses = {}
     @guesses[:right] = data['guesses']['right']
     @guesses[:wrong] = data['guesses']['wrong']
@@ -181,7 +200,7 @@ Wrong guesses : #{@guesses[:wrong].map { |guess| guess.colorize(color: :red) }.j
 
   def save_game
     data = JSON.dump({
-                       secret_word: @secret_word,
+                       secret_word: @secret_word.encrypt('8morts6blesses'),
                        guesses: @guesses,
                        guess_iteration: @guess_iteration,
                        guess_output: @guess_output

@@ -9,3 +9,5 @@ gem 'rubocop-performance', '~> 1.22'
 gem 'colorize', '~> 1.1'
 
 gem "json", "~> 2.7"
+
+gem "openssl", "~> 3.2"
